@@ -9,6 +9,7 @@ import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
+import android.support.annotation.NonNull;
 import android.text.Html;
 import android.util.Base64;
 import android.view.Gravity;
@@ -52,6 +53,7 @@ public class SocialSharing extends CordovaPlugin {
   private static final int ACTIVITY_CODE_SENDVIAEMAIL = 2;
   private static final int ACTIVITY_CODE_SENDVIAWHATSAPP = 3;
   private static final String WWW = "www/";
+  private static final String RELATIVE_PREFIX = "./";
 
   private CallbackContext _callbackContext;
 
@@ -338,35 +340,12 @@ public class SocialSharing extends CordovaPlugin {
     // we're assuming an image, but this can be any filetype you like
     String localImage = image;
     sendIntent.setType("image/*");
-    if (image.startsWith("http") || image.startsWith(WWW)) {
-      InputStream imageStream;
-      String filename = getFileName(image);
-      localImage = "file://" + dir + "/" + filename;
-      if (image.startsWith("http")) {
-        // filename optimisation taken from https://github.com/EddyVerbruggen/SocialSharing-PhoneGap-Plugin/pull/56
-        URLConnection connection = new URL(image).openConnection();
-        String disposition = connection.getHeaderField("Content-Disposition");
-        if (disposition != null) {
-          final Pattern dispositionPattern = Pattern.compile("filename=([^;]+)");
-          Matcher matcher = dispositionPattern.matcher(disposition);
-          if (matcher.find()) {
-            filename = matcher.group(1).replaceAll("[^a-zA-Z0-9._-]", "");
-            if (filename.length() == 0) {
-              // in this case we can't determine a filetype so some targets (gmail) may not render it correctly
-              filename = "file";
-            }
-            localImage = "file://" + dir + "/" + filename;
-          }
-        }
-        imageStream = connection.getInputStream();
-      } else {
-        File currentPageDir = new File(currentPageURI).getParentFile();
-        File relativeImageFile = new File(currentPageDir, image.substring(WWW.length()));
-        imageStream = relativeImageFile.exists()
-            ? new FileInputStream(relativeImageFile)
-            : webView.getContext().getAssets().open(image);
-      }
-      saveFile(getBytes(imageStream), dir, filename);
+    if (image.startsWith("http")) {
+      localImage = saveFromWeb(dir, image);
+    } else if (image.startsWith(WWW)) {
+      localImage = saveFromRelativeLocal(dir, image.substring(WWW.length()), currentPageURI);
+    } else if (image.startsWith(RELATIVE_PREFIX)) {
+      localImage = saveFromRelativeLocal(dir, image.substring(RELATIVE_PREFIX.length()), currentPageURI);
     } else if (image.startsWith("data:")) {
       // safeguard for https://code.google.com/p/android/issues/detail?id=7901#c43
       if (!image.contains(";base64,")) {
@@ -408,6 +387,44 @@ public class SocialSharing extends CordovaPlugin {
       throw new IllegalArgumentException("URL_NOT_SUPPORTED");
     }
     return Uri.parse(localImage);
+  }
+
+  @NonNull
+  private String saveFromRelativeLocal(String dir, String image, URI currentPageURI) throws IOException {
+    String filename = getFileName(image);
+    String localImage = "file://" + dir + "/" + filename;
+    File currentPageDir = new File(currentPageURI).getParentFile();
+    File relativeImageFile = new File(currentPageDir, image);
+    InputStream imageStream = relativeImageFile.exists()
+		  ? new FileInputStream(relativeImageFile)
+		  : webView.getContext().getAssets().open(image);
+    saveFile(getBytes(imageStream), dir, filename);
+    return localImage;
+  }
+
+  @NonNull
+  private String saveFromWeb(String dir, String imageUrl) throws IOException {
+    String localImage;
+    String filename = getFileName(imageUrl);
+    localImage = "file://" + dir + "/" + filename;
+    // filename optimisation taken from https://github.com/EddyVerbruggen/SocialSharing-PhoneGap-Plugin/pull/56
+    URLConnection connection = new URL(imageUrl).openConnection();
+    String disposition = connection.getHeaderField("Content-Disposition");
+    if (disposition != null) {
+      final Pattern dispositionPattern = Pattern.compile("filename=([^;]+)");
+      Matcher matcher = dispositionPattern.matcher(disposition);
+      if (matcher.find()) {
+        filename = matcher.group(1).replaceAll("[^a-zA-Z0-9._-]", "");
+        if (filename.length() == 0) {
+          // in this case we can't determine a filetype so some targets (gmail) may not render it correctly
+          filename = "file";
+        }
+        localImage = "file://" + dir + "/" + filename;
+      }
+    }
+    saveFile(getBytes(connection.getInputStream()), dir, filename);
+
+    return localImage;
   }
 
   private boolean shareViaWhatsAppDirectly(final CallbackContext callbackContext, String message, final String subject, final JSONArray files, final String url, final String number) {

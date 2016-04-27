@@ -9,7 +9,6 @@ import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
-import android.support.annotation.NonNull;
 import android.text.Html;
 import android.util.Base64;
 import android.view.Gravity;
@@ -389,7 +388,6 @@ public class SocialSharing extends CordovaPlugin {
     return Uri.parse(localImage);
   }
 
-  @NonNull
   private String saveFromRelativeLocal(String dir, String image, URI currentPageURI) throws IOException {
     String filename = getFileName(image);
     String localImage = "file://" + dir + "/" + filename;
@@ -402,7 +400,6 @@ public class SocialSharing extends CordovaPlugin {
     return localImage;
   }
 
-  @NonNull
   private String saveFromWeb(String dir, String imageUrl) throws IOException {
     String localImage;
     String filename = getFileName(imageUrl);

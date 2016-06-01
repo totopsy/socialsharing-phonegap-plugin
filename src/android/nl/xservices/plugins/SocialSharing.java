@@ -383,7 +383,7 @@ public class SocialSharing extends CordovaPlugin {
   private Uri getFileUriAndSetType(Intent sendIntent, String dir, String image, String subject, int nthFile, URI currentPageURI) throws IOException {
     // we're assuming an image, but this can be any filetype you like
     String localImage = image;
-    if( image.endsWith("mp4") || image.endsWith("mov") || image.endsWith("3gp")  ){
+    if (image.endsWith("mp4") || image.endsWith("mov") || image.endsWith("3gp")  ){
       sendIntent.setType("video/*");
     } else {
       sendIntent.setType("image/*");

@@ -56,10 +56,10 @@
         <param name="android-package" value="nl.xservices.plugins.SocialSharing" />
       </feature>
     </config-file>
-
-    <config-file target="AndroidManifest.xml" parent="/*">
+   
+    <!-- <config-file target="AndroidManifest.xml" parent="/*">
       <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    </config-file>
+    </config-file> -->
 
     <source-file src="src/android/nl/xservices/plugins/SocialSharing.java" target-dir="src/nl/xservices/plugins"/>
   </platform>
